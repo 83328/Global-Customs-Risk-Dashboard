@@ -80,29 +80,23 @@
         .attr("y", 0)
         .attr("width", width)
         .attr("height", height)
-        .attr("fill", "#181a1b");
+        .attr("class", "map-bg");
 
       const g = svg.append("g").attr("class", "countries-group");
       g.selectAll("path")
         .data(countries)
         .join("path")
         .attr("d", path)
+        .attr("class", d => {
+          let base = "map-country";
+          if (selectedCountry && riskData[d.id]?.name === selectedCountry?.name) base += " map-country-selected";
+          if (!riskData[d.id]) base += " map-country-missing";
+          return base;
+        })
         .attr("fill", d => {
           const code = d.id;
           const country = riskData[code];
-          return country ? colorScale(country.risk) : "#23272b"; // fallback: dark grey
-        })
-        .attr("stroke", d => {
-          if (selectedCountry && riskData[d.id]?.name === selectedCountry?.name) {
-            return "#2563eb"; // blue-600
-          }
-          return "#222"; // even darker outline
-        })
-        .attr("stroke-width", d => {
-          if (selectedCountry && riskData[d.id]?.name === selectedCountry?.name) {
-            return 3;
-          }
-          return 1;
+          return country ? colorScale(country.risk) : null;
         })
         .on("click", function(event, d) {
           const code = d.id;
@@ -148,30 +142,27 @@
         .attr("width", legendWidth)
         .attr("height", legendHeight)
         .attr("rx", 4)
-        .style("fill", `url(#${gradientId})`)
-        .attr("stroke", "#999");
+        .attr("class", "map-legend-bar")
+        .style("fill", `url(#${gradientId})`);
 
       // Draw legend labels
       svg.append("text")
         .attr("x", legendX)
         .attr("y", legendY - 4)
         .attr("text-anchor", "start")
-        .attr("font-size", 12)
-        .attr("fill", "#333")
+        .attr("class", "map-legend-label")
         .text("Low Risk");
       svg.append("text")
         .attr("x", legendX + legendWidth)
         .attr("y", legendY - 4)
         .attr("text-anchor", "end")
-        .attr("font-size", 12)
-        .attr("fill", "#333")
+        .attr("class", "map-legend-label")
         .text("High Risk");
       svg.append("text")
         .attr("x", legendX + legendWidth / 2)
         .attr("y", legendY + legendHeight + 16)
         .attr("text-anchor", "middle")
-        .attr("font-size", 12)
-        .attr("fill", "#333")
+        .attr("class", "map-legend-label")
         .text("Customs Risk Score");
     }, [worldData, riskData, selectedCountry]);
 
@@ -190,7 +181,7 @@
         height: "100vh"
       }),
       // Header
-      e("header", { className: "fixed top-0 left-0 w-full bg-blue-900 text-white p-4 text-xl font-bold z-20 shadow flex items-center justify-between" }, [
+  e("header", { className: "fixed top-0 left-0 w-full bg-gradient-to-r from-gray-900 via-gray-800 to-gray-700 text-gray-100 p-4 text-xl font-bold z-20 shadow flex items-center justify-between" }, [
         e("span", null, "Global Customs Risk Dashboard"),
         e("span", { className: "ml-4 text-xs font-normal" }, `Data updated: ${lastUpdate}`),
         // Dropdown

@@ -1,3 +1,33 @@
+/* --- MAP & LEGEND STYLES --- */
+.map-bg {
+  fill: #181a1b;
+}
+.map-country {
+  stroke: #222;
+  stroke-width: 1;
+  cursor: pointer;
+  transition: stroke 0.2s, stroke-width 0.2s;
+}
+.map-country:hover {
+  stroke: #333;
+  stroke-width: 1.5;
+}
+.map-country-selected {
+  stroke: #d6d315 !important;
+  stroke-width: 3 !important;
+}
+.map-country-missing {
+  fill: #23272b !important;
+}
+.map-legend-bar {
+  stroke: #999;
+}
+.map-legend-label {
+  font-size: 12px;
+  fill: #333;
+  font-family: "Inter", Arial, sans-serif;
+}
+
 /* Dropdown text style for consistency */
 .dropdown-text {
   font-family: "Inter", Arial, sans-serif;
