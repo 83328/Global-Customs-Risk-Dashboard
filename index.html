@@ -29,6 +29,8 @@
   const [dropdownOpen, setDropdownOpen] = React.useState(false);
   const [searchTerm, setSearchTerm] = React.useState("");
   const [countryList, setCountryList] = React.useState([]);
+  // Hardcoded last update for now; in a real app, fetch dynamically
+  const lastUpdate = "2025-08-28";
 
     React.useEffect(() => {
       Promise.all([
@@ -69,7 +71,9 @@
       // Filter out Antarctica (id '010')
       const countries = topojson.feature(worldData, worldData.objects.countries).features.filter(f => f.id !== "010");
 
-      svg.selectAll("path")
+      // Add a group for zooming
+      const g = svg.append("g").attr("class", "countries-group");
+      g.selectAll("path")
         .data(countries)
         .join("path")
         .attr("d", path)
@@ -97,6 +101,68 @@
             setSelectedCountry(country);
           }
         });
+
+      // Enable zoom and pan
+      const zoom = d3.zoom()
+        .scaleExtent([1, 8])
+        .on("zoom", (event) => {
+          g.attr("transform", event.transform);
+        });
+      svg.call(zoom);
+
+      // --- Risk Color Legend ---
+      const legendWidth = 200, legendHeight = 14;
+      const legendMargin = 24;
+      const legendX = width - legendWidth - legendMargin;
+      const legendY = height - legendHeight - legendMargin;
+
+      // Gradient definition
+      const defs = svg.append("defs");
+      const gradientId = "risk-gradient";
+      const gradient = defs.append("linearGradient")
+        .attr("id", gradientId)
+        .attr("x1", "0%")
+        .attr("x2", "100%")
+        .attr("y1", "0%")
+        .attr("y2", "0%");
+      for (let i = 0; i <= 100; i += 10) {
+        gradient.append("stop")
+          .attr("offset", `${i}%`)
+          .attr("stop-color", colorScale(i));
+      }
+
+      // Draw legend bar
+      svg.append("rect")
+        .attr("x", legendX)
+        .attr("y", legendY)
+        .attr("width", legendWidth)
+        .attr("height", legendHeight)
+        .attr("rx", 4)
+        .style("fill", `url(#${gradientId})`)
+        .attr("stroke", "#999");
+
+      // Draw legend labels
+      svg.append("text")
+        .attr("x", legendX)
+        .attr("y", legendY - 4)
+        .attr("text-anchor", "start")
+        .attr("font-size", 12)
+        .attr("fill", "#333")
+        .text("Low Risk");
+      svg.append("text")
+        .attr("x", legendX + legendWidth)
+        .attr("y", legendY - 4)
+        .attr("text-anchor", "end")
+        .attr("font-size", 12)
+        .attr("fill", "#333")
+        .text("High Risk");
+      svg.append("text")
+        .attr("x", legendX + legendWidth / 2)
+        .attr("y", legendY + legendHeight + 16)
+        .attr("text-anchor", "middle")
+        .attr("font-size", 12)
+        .attr("fill", "#333")
+        .text("Customs Risk Score");
     }, [worldData, riskData, selectedCountry]);
 
 
@@ -116,6 +182,7 @@
       // Header
       e("header", { className: "fixed top-0 left-0 w-full bg-blue-900 text-white p-4 text-xl font-bold z-20 shadow flex items-center justify-between" }, [
         e("span", null, "Global Customs Risk Dashboard"),
+        e("span", { className: "ml-4 text-xs font-normal" }, `Data updated: ${lastUpdate}`),
         // Dropdown
         e("div", { className: "relative w-72" }, [
           e("button", {
