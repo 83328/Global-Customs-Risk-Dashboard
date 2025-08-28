@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Global Customs Risk Dashboard</title>
+    <!-- Tailwind -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- React & ReactDOM -->
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <!-- D3 -->
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <!-- TopoJSON for map -->
+    <script src="https://unpkg.com/topojson-client@3"></script>
+    <!-- Styles -->
+    <link rel="stylesheet" href="assets/styles.css" />
+  </head>
+  <body class="bg-gray-100 text-gray-800">
+    <div id="root"></div>
+
+<script type="text/javascript">
+  const e = React.createElement;
+
+  function App() {
+    const [worldData, setWorldData] = React.useState(null);
+    const [riskData, setRiskData] = React.useState({});
+  const [selectedCountry, setSelectedCountry] = React.useState(null);
+  const [dropdownOpen, setDropdownOpen] = React.useState(false);
+  const [searchTerm, setSearchTerm] = React.useState("");
+  const [countryList, setCountryList] = React.useState([]);
+
+    React.useEffect(() => {
+      Promise.all([
+        d3.json("https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json"),
+        d3.json("data/risk-data.json"),
+      ]).then(([world, risks]) => {
+        setWorldData(world);
+        setRiskData(risks);
+        // Prepare country list for dropdown (exclude Antarctica)
+        const features = topojson.feature(world, world.objects.countries).features.filter(f => f.id !== "010");
+        const list = features
+          .map(f => ({
+            id: f.id,
+            name: risks[f.id]?.name || "Unknown"
+          }))
+          .filter(c => c.name !== "Unknown")
+          .sort((a, b) => a.name.localeCompare(b.name));
+        setCountryList(list);
+      });
+    }, []);
+
+    React.useEffect(() => {
+      if (!worldData || !riskData) return;
+
+      const svg = d3.select("#map");
+      svg.selectAll("*").remove();
+
+      const width = svg.node().clientWidth;
+      const height = svg.node().clientHeight;
+
+      const projection = d3.geoMercator().fitSize([width, height],
+        topojson.feature(worldData, worldData.objects.countries)
+      );
+      const path = d3.geoPath(projection);
+
+      const colorScale = d3.scaleSequential(d3.interpolateRdYlGn).domain([0, 100]);
+
+      // Filter out Antarctica (id '010')
+      const countries = topojson.feature(worldData, worldData.objects.countries).features.filter(f => f.id !== "010");
+
+      svg.selectAll("path")
+        .data(countries)
+        .join("path")
+        .attr("d", path)
+        .attr("fill", d => {
+          const code = d.id;
+          const country = riskData[code];
+          return country ? colorScale(country.risk) : "#eee";
+        })
+        .attr("stroke", d => {
+          if (selectedCountry && riskData[d.id]?.name === selectedCountry?.name) {
+            return "#2563eb"; // blue-600
+          }
+          return "#999";
+        })
+        .attr("stroke-width", d => {
+          if (selectedCountry && riskData[d.id]?.name === selectedCountry?.name) {
+            return 3;
+          }
+          return 1;
+        })
+        .on("click", function(event, d) {
+          const code = d.id;
+          const country = riskData[code];
+          if (country) {
+            setSelectedCountry(country);
+          }
+        });
+    }, [worldData, riskData, selectedCountry]);
+
+
+    if (!worldData || !riskData) {
+      return e("div", { className: "p-4" }, "Loading...");
+    }
+
+    return e("div", { className: "relative w-screen h-screen overflow-hidden" }, [
+      // Map
+      e("svg", {
+        id: "map",
+        className: "fixed inset-0 w-screen h-screen z-0",
+        style: { display: "block" },
+        width: "100vw",
+        height: "100vh"
+      }),
+      // Header
+      e("header", { className: "fixed top-0 left-0 w-full bg-blue-900 text-white p-4 text-xl font-bold z-20 shadow flex items-center justify-between" }, [
+        e("span", null, "Global Customs Risk Dashboard"),
+        // Dropdown
+        e("div", { className: "relative w-72" }, [
+          e("button", {
+            className: "w-full bg-white rounded shadow px-4 py-2 text-left focus:outline-none focus:ring-2 focus:ring-blue-400 dropdown-text",
+            onClick: () => setDropdownOpen(v => !v)
+          },
+            searchTerm && countryList.find(c => c.name.toLowerCase() === searchTerm.toLowerCase())
+              ? countryList.find(c => c.name.toLowerCase() === searchTerm.toLowerCase()).name
+              : "Select a country..."
+          ),
+          dropdownOpen && e("div", {
+            className: "absolute mt-1 w-full bg-white border border-gray-300 rounded shadow-lg z-50 max-h-64 overflow-y-auto"
+          }, [
+            e("input", {
+              className: "w-full px-3 py-2 border-b border-gray-200 focus:outline-none dropdown-text",
+              placeholder: "Type to search...",
+              value: searchTerm,
+              autoFocus: true,
+              onChange: e => setSearchTerm(e.target.value)
+            }),
+            countryList
+              .filter(c => c.name.toLowerCase().includes(searchTerm.toLowerCase()))
+              .map(c => e("div", {
+                key: c.id,
+                className: "px-4 py-2 hover:bg-blue-100 cursor-pointer dropdown-text",
+                onClick: () => {
+                  setSelectedCountry(riskData[c.id]);
+                  setDropdownOpen(false);
+                  setSearchTerm("");
+                }
+              }, c.name))
+          ])
+        ])
+      ]),
+      // Modal
+      selectedCountry && e("div", {
+        className: "fixed inset-0 flex items-center justify-center z-30 bg-black bg-opacity-40",
+        onClick: () => setSelectedCountry(null)
+      },
+        e("div", {
+          className: "bg-white rounded-lg shadow-xl p-8 min-w-[320px] max-w-[90vw] max-h-[80vh] overflow-y-auto relative",
+          onClick: e => e.stopPropagation()
+        }, [
+          e("button", {
+            className: "absolute top-2 right-2 text-gray-500 hover:text-gray-800 text-2xl font-bold",
+            onClick: () => setSelectedCountry(null),
+            "aria-label": "Close"
+          }, "×"),
+          e("h2", { className: "text-lg font-bold mb-2" }, selectedCountry.name),
+          e("p", { className: "mb-2" }, `Risk Score: ${selectedCountry.risk}`),
+          e("ul", { className: "list-disc list-inside" },
+            selectedCountry.issues.map((iss, i) => e("li", { key: i }, iss))
+          )
+        ])
+      )
+    ]);
+  }
+
+  ReactDOM.createRoot(document.getElementById("root")).render(e(App));
+</script>
+
+  </body>
+</html>

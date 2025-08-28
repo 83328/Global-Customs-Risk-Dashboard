@@ -1,0 +1,31 @@
+# Node modules and build output
+node_modules/
+dist/
+build/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Python server artifacts
+__pycache__/
+*.pyc
+
+# VSCode settings
+.vscode/
+
+# Logs
+*.log
+
+# Local server files
+.env
+
+# Ignore data backups
+*.bak
+
+# Ignore system swap files
+*.swp
+*.swo
+
+# Ignore Jupyter notebook checkpoints
+.ipynb_checkpoints/

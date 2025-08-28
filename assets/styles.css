@@ -1,0 +1,34 @@
+/* Dropdown text style for consistency */
+.dropdown-text {
+  font-family: "Inter", Arial, sans-serif;
+  font-size: 1rem;
+  color: #1a202c; /* Tailwind's gray-800 */
+}
+/* Global font */
+body {
+  font-family: "Inter", Arial, sans-serif;
+}
+
+/* Hover effect for map countries */
+#map path:hover {
+  stroke: #333;
+  stroke-width: 1.5px;
+  cursor: pointer;
+}
+
+/* Sidebar scroll styling */
+aside {
+  scrollbar-width: thin;
+  scrollbar-color: #4a5568 #edf2f7; /* thumb / track */
+}
+
+aside::-webkit-scrollbar {
+  width: 6px;
+}
+aside::-webkit-scrollbar-thumb {
+  background-color: #4a5568;
+  border-radius: 3px;
+}
+aside::-webkit-scrollbar-track {
+  background: #edf2f7;
+}
